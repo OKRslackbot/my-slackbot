@@ -25,17 +25,81 @@ function updateKeyResultProgress(objective, krId, newProgress) {
   return false;
 }
 
-function createObjective(userData, objectiveId, objectiveText) {
+function createObjective(userData, objectiveId, text) {
   if (!userData.objectives) userData.objectives = {};
+  if (userData.objectives[objectiveId]) return false;
   userData.objectives[objectiveId] = {
-    text: objectiveText,
+    text,
     keyResults: {}
   };
+  return true;
+}
+
+function addKeyResult(objective, krId, text) {
+  if (!objective.keyResults[krId]) {
+    objective.keyResults[krId] = {
+      text,
+      progress: 0
+    };
+    return true;
+  }
+  return false;
+}
+
+function deleteObjective(userData, objectiveId) {
+  if (userData.objectives && userData.objectives[objectiveId]) {
+    delete userData.objectives[objectiveId];
+    return true;
+  }
+  return false;
+}
+
+function deleteKeyResult(objective, krId) {
+  if (objective.keyResults && objective.keyResults[krId]) {
+    delete objective.keyResults[krId];
+    return true;
+  }
+  return false;
+}
+
+function updateObjectiveText(objective, newText) {
+  if (objective && newText) {
+    objective.text = newText;
+    return true;
+  }
+  return false;
+}
+
+function clearOKRs(userData) {
+  userData.objectives = {};
+}
+
+function generateTeamReport(okrData) {
+  const reportLines = [];
+
+  for (const [userId, userData] of Object.entries(okrData.users)) {
+    reportLines.push(`User: <@${userId}>`);
+    for (const [objId, objective] of Object.entries(userData.objectives || {})) {
+      reportLines.push(`• *${objId}*: ${objective.text}`);
+      for (const [krId, kr] of Object.entries(objective.keyResults || {})) {
+        reportLines.push(`   - ${krId}: ${kr.text} (${kr.progress}%)`);
+      }
+    }
+    reportLines.push('');
+  }
+
+  return reportLines.join('\n');
 }
 
 module.exports = {
   loadOKRs,
   saveOKRs,
   updateKeyResultProgress,
-  createObjective
+  createObjective,
+  addKeyResult,
+  deleteObjective,
+  deleteKeyResult,
+  updateObjectiveText,
+  clearOKRs,
+  generateTeamReport
 };
