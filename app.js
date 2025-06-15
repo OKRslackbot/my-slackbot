@@ -1,54 +1,44 @@
 require('dotenv').config();
-const express = require('express');
+const { App } = require('@slack/bolt');
 
-// Create Express app for basic testing
-const app = express();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Basic health check route
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'OKR Slack Bot is running!',
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development'
-  });
+const app = new App({
+  token: process.env.SLACK_BOT_TOKEN,
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
+  socketMode: true,
+  appToken: process.env.SLACK_APP_TOKEN
 });
 
-// Test route
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+// Sample OKR commands
+app.command('/okr-create', async ({ command, ack, say }) => {
+  await ack();
+  await say(`Creating OKR: ${command.text}`);
 });
 
-// Basic Slack events endpoint (for now just acknowledge)
-app.post('/slack/events', (req, res) => {
-  console.log('Received Slack request:', req.body);
-  
-  // Handle URL verification
-  if (req.body && req.body.type === 'url_verification') {
-    return res.json({ challenge: req.body.challenge });
+app.command('/okr-list', async ({ command, ack, say }) => {
+  await ack();
+  await say('Here are your current OKRs:\n• Sample OKR 1\n• Sample OKR 2');
+});
+
+app.command('/okr-update', async ({ command, ack, say }) => {
+  await ack();
+  await say(`Updating OKR: ${command.text}`);
+});
+
+// Message listener for mentions
+app.message(/okr|objective|key result/i, async ({ message, say }) => {
+  await say('I can help you with OKRs! Use /okr-create, /okr-list, or /okr-update commands.');
+});
+
+// Error handling
+app.error((error) => {
+  console.error('Slack app error:', error);
+});
+
+(async () => {
+  try {
+    await app.start(process.env.PORT || 3000);
+    console.log('⚡️ Slack bot is running!');
+  } catch (error) {
+    console.error('Failed to start app:', error);
   }
-  
-  // For now, just acknowledge
-  res.status(200).json({ received: true });
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Simple OKR Bot server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');  
-  process.exit(0);
-});
+})();
