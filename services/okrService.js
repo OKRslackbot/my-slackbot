@@ -1,153 +1,99 @@
 const fs = require('fs');
 const path = require('path');
-
 const DATA_FILE = path.join(__dirname, '..', 'data.okrs.json');
 
-// -------------------------
-// Data loading/saving
-// -------------------------
-function loadOKRs() {
+// Load and Save
+function loadData() {
   if (!fs.existsSync(DATA_FILE)) return { users: {} };
   return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 }
-
-function saveOKRs(data) {
+function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// -------------------------
-// OKR Operations
-// -------------------------
-function createObjective(userData, objectiveId, text) {
-  if (!userData.objectives) {
-    userData.objectives = {};
+// Init user
+function initUser(data, userId) {
+  if (!data.users[userId]) {
+    data.users[userId] = { objectives: {} };
   }
-
-  if (userData.objectives[objectiveId]) {
-    return false; // already exists
-  }
-
-  userData.objectives[objectiveId] = {
-    id: objectiveId,
-    title: text,
-    keyResults: {},
-    createdAt: new Date(),
-    lastUpdated: new Date()
-  };
-
-  return true;
+  return data.users[userId];
 }
 
-function updateObjectiveText(objective, newText) {
-  if (!objective) return false;
-  objective.title = newText;
-  objective.lastUpdated = new Date();
-  return true;
+// CRUD Functions
+function createObjective(userId, okrId, title) {
+  const data = loadData();
+  const user = initUser(data, userId);
+  user.objectives[okrId] = { title, keyResults: {} };
+  saveData(data);
 }
 
-// -------------------------
-// Key Result Operations
-// -------------------------
-function addKeyResult(userData, objectiveId, krId, krText) {
-  if (!userData.objectives?.[objectiveId]) return false;
+function addKeyResult(userId, okrId, krId, text) {
+  const data = loadData();
+  const user = initUser(data, userId);
+  if (!user.objectives[okrId]) return;
+  user.objectives[okrId].keyResults[krId] = { text };
+  saveData(data);
+}
 
-  const objective = userData.objectives[objectiveId];
-  if (!objective.keyResults) {
-    objective.keyResults = {};
+function updateObjective(userId, okrId, newTitle) {
+  const data = loadData();
+  const user = initUser(data, userId);
+  if (user.objectives[okrId]) {
+    user.objectives[okrId].title = newTitle;
+    saveData(data);
   }
-
-  objective.keyResults[krId] = {
-    text: krText,
-    progress: 0
-  };
-
-  objective.lastUpdated = new Date();
-  return true;
 }
 
-function updateKeyResultProgress(objective, krId, newProgress) {
-  if (
-    objective.keyResults &&
-    objective.keyResults[krId] &&
-    newProgress >= 0 &&
-    newProgress <= 100
-  ) {
-    objective.keyResults[krId].progress = newProgress;
-    objective.lastUpdated = new Date();
-    return true;
+function updateKeyResult(userId, okrId, krId, newText) {
+  const data = loadData();
+  const user = initUser(data, userId);
+  if (user.objectives[okrId]?.keyResults[krId]) {
+    user.objectives[okrId].keyResults[krId].text = newText;
+    saveData(data);
   }
-  return false;
 }
 
-function deleteKeyResult(userData, objectiveId, krId) {
-  if (userData?.objectives?.[objectiveId]?.keyResults?.[krId]) {
-    delete userData.objectives[objectiveId].keyResults[krId];
-    userData.objectives[objectiveId].lastUpdated = new Date();
-    return true;
-  }
-  return false;
+function deleteObjective(userId, okrId) {
+  const data = loadData();
+  const user = initUser(data, userId);
+  delete user.objectives[okrId];
+  saveData(data);
 }
 
-// -------------------------
-// Cleanup + Deletion
-// -------------------------
-function deleteObjective(userData, objectiveId) {
-  if (userData?.objectives?.[objectiveId]) {
-    delete userData.objectives[objectiveId];
-    return true;
-  }
-  return false;
+function deleteKeyResult(userId, okrId, krId) {
+  const data = loadData();
+  const user = initUser(data, userId);
+  delete user.objectives[okrId]?.keyResults[krId];
+  saveData(data);
 }
 
-function clearAllOKRs(userData) {
-  userData.objectives = {};
-  return true;
-}
+function listOKRs(userId) {
+  const data = loadData();
+  const user = initUser(data, userId);
+  const objectives = user.objectives;
+  if (!Object.keys(objectives).length) return '📭 No OKRs found.';
 
-// -------------------------
-// Team Reporting
-// -------------------------
-function generateTeamReport(users) {
-  const report = [];
-
-  if (!users || Object.keys(users).length === 0) {
-    return '⚠️ No OKR data available to generate a report.';
-  }
-
-  for (const [userId, userData] of Object.entries(users)) {
-    report.push(`👤 <@${userId}>`);
-    const objectives = userData.objectives || {};
-
-    if (Object.keys(objectives).length === 0) {
-      report.push('  No objectives defined.\n');
-      continue;
+  const result = ['📋 *Your OKRs:*'];
+  for (const [okrId, obj] of Object.entries(objectives)) {
+    result.push(`*${okrId}*: ${obj.title}`);
+    for (const [krId, kr] of Object.entries(obj.keyResults)) {
+      result.push(`  - ${krId}: ${kr.text}`);
     }
-
-    for (const [objId, obj] of Object.entries(objectives)) {
-      report.push(`  📌 *${objId}*: ${obj.title}`);
-      const keyResults = obj.keyResults || {};
-
-      for (const [krId, kr] of Object.entries(keyResults)) {
-        report.push(`    - *${krId}*: ${kr.text} (${kr.progress || 0}%)`);
-      }
-    }
-    report.push('');
   }
-
-  return report.join('\n');
+  return result.join('\n');
 }
 
-// -------------------------
+function generateReport(userId) {
+  return listOKRs(userId); // For now, reuse the same as list
+}
 
 module.exports = {
-  loadOKRs,
-  saveOKRs,
   createObjective,
-  updateObjectiveText,
   addKeyResult,
-  updateKeyResultProgress,
-  deleteKeyResult,
+  updateObjective,
+  updateKeyResult,
   deleteObjective,
-  clearAllOKRs,
-  generateTeamReport
+  deleteKeyResult,
+  listOKRs,
+  generateReport
 };

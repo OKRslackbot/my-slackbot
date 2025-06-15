@@ -1,19 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
+const commands = require('./routes/commands');
+
 const app = express();
-require('dotenv').config();
-
-const commandsRouter = require('./routes/commands');
-const interactionsRouter = require('./routes/interactions');
-
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.use('/slack/commands', commandsRouter);
-app.use('/slack/interactions', interactionsRouter);
+app.use('/slack/commands', commands);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Slack bot running on port ${PORT}`);
-
+  console.log(`Slack OKR bot running on port ${PORT}`);
 });
