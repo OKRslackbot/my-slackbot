@@ -74,21 +74,34 @@ function clearOKRs(userData) {
   userData.objectives = {};
 }
 
-function generateTeamReport(okrData) {
-  const reportLines = [];
-
-  for (const [userId, userData] of Object.entries(okrData.users)) {
-    reportLines.push(`User: <@${userId}>`);
-    for (const [objId, objective] of Object.entries(userData.objectives || {})) {
-      reportLines.push(`• *${objId}*: ${objective.text}`);
-      for (const [krId, kr] of Object.entries(objective.keyResults || {})) {
-        reportLines.push(`   - ${krId}: ${kr.text} (${kr.progress}%)`);
-      }
-    }
-    reportLines.push('');
+function generateTeamReport(data) {
+  if (!data || !data.users || Object.keys(data.users).length === 0) {
+    return '⚠️ No OKR data available to generate a report.';
   }
 
-  return reportLines.join('\n');
+  let report = '*📊 Team OKR Report:*\n\n';
+
+  for (const [userId, userData] of Object.entries(data.users)) {
+    report += `👤 <@${userId}>\n`;
+
+    const objectives = userData.objectives || {};
+    if (Object.keys(objectives).length === 0) {
+      report += '  _No objectives defined._\n\n';
+      continue;
+    }
+
+    for (const [objId, obj] of Object.entries(objectives)) {
+      report += `  • *${objId}:* ${obj.text}\n`;
+      const keyResults = obj.keyResults || {};
+      for (const [krId, kr] of Object.entries(keyResults)) {
+        report += `     - ${krId}: ${kr.text} (${kr.progress || 0}%)\n`;
+      }
+    }
+
+    report += '\n';
+  }
+
+  return report.trim();
 }
 
 module.exports = {
