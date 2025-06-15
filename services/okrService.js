@@ -25,8 +25,17 @@ function updateKeyResultProgress(objective, krId, newProgress) {
   return false;
 }
 
+function createObjective(userData, objectiveId, objectiveText) {
+  if (!userData.objectives) userData.objectives = {};
+  userData.objectives[objectiveId] = {
+    text: objectiveText,
+    keyResults: {}
+  };
+}
+
 module.exports = {
   loadOKRs,
   saveOKRs,
-  updateKeyResultProgress
+  updateKeyResultProgress,
+  createObjective
 };
