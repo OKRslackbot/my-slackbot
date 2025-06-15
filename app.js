@@ -1,54 +1,54 @@
 require('dotenv').config();
-const { App } = require('@slack/bolt');
-const Database = require('./src/database/Database');
-const CommandRouter = require('./src/routes/CommandRouter');
-const ViewRouter = require('./src/routes/ViewRouter');
-const ActionRouter = require('./src/routes/ActionRouter');
+const express = require('express');
 
-class OKRBot {
-  constructor() {
-    this.app = new App({
-      token: process.env.SLACK_BOT_TOKEN,
-      signingSecret: process.env.SLACK_SIGNING_SECRET,
-      socketMode: false,
-      port: process.env.PORT || 3000
-    });
-    
-    this.db = new Database();
-    this.setupRoutes();
-    this.setupErrorHandling();
+// Create Express app for basic testing
+const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Basic health check route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'OKR Slack Bot is running!',
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Test route
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// Basic Slack events endpoint (for now just acknowledge)
+app.post('/slack/events', (req, res) => {
+  console.log('Received Slack request:', req.body);
+  
+  // Handle URL verification
+  if (req.body && req.body.type === 'url_verification') {
+    return res.json({ challenge: req.body.challenge });
   }
+  
+  // For now, just acknowledge
+  res.status(200).json({ received: true });
+});
 
-  setupRoutes() {
-    // Initialize routers with dependencies
-    this.commandRouter = new CommandRouter(this.app, this.db);
-    this.viewRouter = new ViewRouter(this.app, this.db);
-    this.actionRouter = new ActionRouter(this.app, this.db);
-    
-    // Register all routes
-    this.commandRouter.registerRoutes();
-    this.viewRouter.registerRoutes();
-    this.actionRouter.registerRoutes();
-  }
+const PORT = process.env.PORT || 3000;
 
-  setupErrorHandling() {
-    this.app.error(async (error) => {
-      console.error('Slack app error:', error);
-    });
-  }
+app.listen(PORT, () => {
+  console.log(`🚀 Simple OKR Bot server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+});
 
-  async start() {
-    try {
-      await this.db.init();
-      await this.app.start();
-      console.log('⚡️ Modular OKR Slack Bot is running!');
-    } catch (error) {
-      console.error('Error starting app:', error);
-      process.exit(1);
-    }
-  }
-}
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
 
-// Start the bot
-const bot = new OKRBot();
-bot.start();
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');  
+  process.exit(0);
+});

@@ -3,8 +3,9 @@ services:
     name: okr-slack-bot
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci --production=false
     startCommand: npm start
+    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
@@ -12,3 +13,4 @@ services:
         sync: false
       - key: SLACK_SIGNING_SECRET
         sync: false
+    autoDeploy: true
