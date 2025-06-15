@@ -38,15 +38,28 @@ router.post('/', async (req, res) => {
   }
 
   if (command === '/okr-update-text') {
-    const [objectiveId, ...newTextArr] = text.trim().split(' ');
-    const newText = newTextArr.join(' ');
-    if (!objectiveId || !newText) {
-      return res.send('Usage: /okr-update-text OKR1 New objective text');
-    }
-    updateObjectiveText(userData, objectiveId, newText);
-    await saveOKRs(okrData);
-    return res.send(`✅ Updated ${objectiveId} to: "${newText}"`);
+  const [objectiveId, ...newTextParts] = text.trim().split(' ');
+  const newText = newTextParts.join(' ');
+
+  if (!objectiveId || !newText) {
+    return res.send('Usage: /okr-update-text OKR1 New objective description');
   }
+
+
+  if (!userData?.objectives?.[objectiveId]) {
+    return res.send(`Objective *${objectiveId}* not found.`);
+  }
+
+  const updated = updateObjectiveText(userData.objectives[objectiveId], newText);
+
+  if (updated) {
+    await saveOKRs(okrData);
+    return res.send(`✅ Objective *${objectiveId}* updated to: "${newText}"`);
+  } else {
+    return res.send(`⚠️ Failed to update Objective *${objectiveId}*.`);
+  }
+}
+
 
   if (command === '/okr-delete') {
     const objectiveId = text.trim();
