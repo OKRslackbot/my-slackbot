@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { App } = require('@slack/bolt');
 
 const app = new App({
@@ -36,8 +35,9 @@ app.error((error) => {
 
 (async () => {
   try {
-    await app.start(process.env.PORT || 3000);
-    console.log('⚡️ Slack bot is running!');
+    const port = process.env.PORT || 3000;
+    await app.start(port);
+    console.log(`⚡️ Slack bot is running on port ${port}!`);
   } catch (error) {
     console.error('Failed to start app:', error);
   }
