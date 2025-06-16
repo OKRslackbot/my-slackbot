@@ -4,10 +4,12 @@
   "description": "Simple OKR Slack bot",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "postinstall": "npm ls"
   },
   "dependencies": {
-    "@slack/bolt": "3.16.0"
+    "@slack/bolt": "^3.16.0",
+    "debug": "^4.3.4"
   },
   "engines": {
     "node": "18.x"
